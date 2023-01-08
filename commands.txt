@@ -1,0 +1,131 @@
+source ~/.bashrc
+
+# calcImageSize.R 
+# find the radius between spots
+# 1512A -> 55 
+singularity exec deepspace_v1.0.sif \
+    Rscript calcImageSize.R \
+        --dataDir /home/jupyter/data \
+        --sampleName Sample_1512-WA-1A_CGCGGTAG-CAGGATGT
+# 1512B -> 55
+singularity exec deepspace_v1.0.sif \
+    Rscript calcImageSize.R \
+        --dataDir /home/jupyter/data \
+        --sampleName Sample_1512-WA-1B_CGGCTGGA-TGATAAGC
+# 1512C -> 55
+singularity exec deepspace_v1.0.sif \
+    Rscript calcImageSize.R \
+        --dataDir /home/jupyter/data \
+        --sampleName Sample_1512-WA-1C_ATAGGGCG-TGCATCGA
+# 1512D -> 55
+singularity exec deepspace_v1.0.sif \
+    Rscript calcImageSize.R \
+        --dataDir /home/jupyter/data \
+        --sampleName Sample_1512-WA-1D_AGCAAGAA-TTGTGTTT
+# 4774A -> 90
+# used calcImageSize.ipynb
+# 4774B -> 90
+# used calcImageSize.ipynb
+# 4774C -> 90
+# used calcImageSize.ipynb
+# 4774D -> 90
+# used calcImageSize.ipynb 
+        
+# CropImage.py
+# 1512
+for sample in Sample_1512-WA-1A_CGCGGTAG-CAGGATGT Sample_1512-WA-1B_CGGCTGGA-TGATAAGC Sample_1512-WA-1C_ATAGGGCG-TGCATCGA Sample_1512-WA-1D_AGCAAGAA-TTGTGTTT
+do
+    singularity exec deepspace_v1.0.sif \
+        python CropImage.py \
+            --dataDir /home/jupyter/data \
+            --outDir /home/jupyter/DeepSpaCE/out \
+            --sampleName $sample \
+            --transposeType 0 \
+            --radiusPixel 55 \
+            --extraSize 150 \
+            --quantileRGB 80
+done
+# 4774
+for sample in Sample_4774-DH-S1-A_TCGGCTCT-AGACCATC Sample_4774-DH-S1-B_TCCGTTGG-GCGAGAAC Sample_4774-DH-S1-C_TGGTTCGG-CTCCTGCC Sample_4774-DH-S1-D_CGCGGTAG-CAACATCC
+do
+    singularity exec deepspace_v1.0.sif \
+        python CropImage.py \
+            --dataDir /home/jupyter/data \
+            --outDir /home/jupyter/DeepSpaCE/out \
+            --sampleName $sample \
+            --transposeType 0 \
+            --radiusPixel 90 \
+            --extraSize 150 \
+            --quantileRGB 80
+done
+        
+# NormalizeUMI.R
+# 1512
+for sample in Sample_1512-WA-1A_CGCGGTAG-CAGGATGT Sample_1512-WA-1B_CGGCTGGA-TGATAAGC Sample_1512-WA-1C_ATAGGGCG-TGCATCGA Sample_1512-WA-1D_AGCAAGAA-TTGTGTTT
+do
+    singularity exec deepspace_v1.0.sif \
+        Rscript NormalizeUMI.R \
+            --dataDir /home/jupyter/data \
+            --outDir /home/jupyter/DeepSpaCE/out \
+            --sampleName $sample \
+            --threshold_count 1000 \
+            --threshold_gene 1000
+done
+#4774
+for sample in Sample_4774-DH-S1-A_TCGGCTCT-AGACCATC Sample_4774-DH-S1-B_TCCGTTGG-GCGAGAAC Sample_4774-DH-S1-C_TGGTTCGG-CTCCTGCC Sample_4774-DH-S1-D_CGCGGTAG-CAACATCC
+do
+    singularity exec deepspace_v1.0.sif \
+        Rscript NormalizeUMI.R \
+            --dataDir /home/jupyter/data \
+            --outDir /home/jupyter/DeepSpaCE/out \
+            --sampleName $sample \
+            --threshold_count 1000 \
+            --threshold_gene 1000
+done
+
+        
+# Training and validating
+
+fold_index="0" 
+all_samples="Sample_1512-WA-1A_CGCGGTAG-CAGGATGT,Sample_1512-WA-1B_CGGCTGGA-TGATAAGC,Sample_1512-WA-1C_ATAGGGCG-TGCATCGA,Sample_1512-WA-1D_AGCAAGAA-TTGTGTTT,Sample_4774-DH-S1-A_TCGGCTCT-AGACCATC,Sample_4774-DH-S1-B_TCCGTTGG-GCGAGAAC,Sample_4774-DH-S1-C_TGGTTCGG-CTCCTGCC,Sample_4774-DH-S1-D_CGCGGTAG-CAACATCC" 
+singularity exec --nv deepspace_v1.0.sif \
+    python DeepSpaCE.py \
+        --dataDir /home/jupyter/data \
+        --outDir /home/jupyter/DeepSpaCE/out \
+        --sampleNames_train "$all_samples" \
+        --sampleNames_test "$all_samples" \
+        --sampleNames_semi None \
+        --semi_option normal \
+        --seed 42 \
+        --threads 8 \
+        --GPUs 1 \
+        --cuda \
+        --transfer \
+        --model VGG16 \
+        --batch_size 64 \
+        --num_epochs 10 \
+        --lr 1e-4 \
+        --weight_decay 1e-4 \
+        --clusteringMethod graphclust \
+        --extraSize 150 \
+        --quantileRGB 80 \
+        --augmentation flip,crop,color,random \
+        --early_stop_max 5 \
+        --cross_index "$fold_index" \
+        --geneSymbols THY1
+
+# Super resolution
+all_samples="Sample_1512-WA-1A_CGCGGTAG-CAGGATGT,Sample_1512-WA-1B_CGGCTGGA-TGATAAGC,Sample_1512-WA-1C_ATAGGGCG-TGCATCGA,Sample_1512-WA-1D_AGCAAGAA-TTGTGTTT,Sample_4774-DH-S1-A_TCGGCTCT-AGACCATC,Sample_4774-DH-S1-B_TCCGTTGG-GCGAGAAC,Sample_4774-DH-S1-C_TGGTTCGG-CTCCTGCC,Sample_4774-DH-S1-D_CGCGGTAG-CAACATCC" 
+singularity exec deepspace_v1.0.sif \
+    python SuperResolution.py \
+        --dataDir /home/jupyter/data \
+        --outDir /home/jupyter/DeepSpaCE/out \
+        --sampleNames "$all_samples" \
+        --model VGG16 \
+        --seed 42 \
+        --threads 8 \
+        --modelName teacher \
+        --batch_size 64 \
+        --extraSize 150 \
+        --quantileRGB 80 \
+        --geneSymbols THY1
