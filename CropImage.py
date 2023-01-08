@@ -23,6 +23,9 @@ parser = argparse.ArgumentParser(description='Crop Image')
 parser.add_argument('--dataDir', type=str, default='/home/'+os.environ['USER']+'/DeepSpaCE/data',
                    help='Data directory (default: '+'/home/'+os.environ['USER']+'/DeepSpaCE/data'+')')
 
+parser.add_argument('--outDir', type=str, 
+                    help='Output directory (e.g. /home/jupyter/DeepSpaCE/out)')
+
 parser.add_argument('--sampleName', type=str, default='Human_Breast_Cancer_Block_A_Section_1',
                    help='Sample name (default: Human_Breast_Cancer_Block_A_Section_1)')
 
@@ -51,6 +54,9 @@ print(args)
 
 dataDir = args.dataDir
 print("dataDir: "+str(dataDir))
+
+outDir = args.outDir
+print("outDir: "+str(outDir))
 
 sampleName = args.sampleName
 print("sampleName: "+sampleName)
@@ -92,8 +98,9 @@ def pil2cv(image):
 
 
 dirName = dataDir+"/"+sampleName
+outDirName = outDir+"/"+sampleName
 
-subprocess.call(['mkdir','-p',dirName+"/CropImage/size_"+str(extraSize)+"/spot_images"])
+subprocess.call(['mkdir','-p',outDirName+"/CropImage/size_"+str(extraSize)+"/spot_images"])
 
 
 
@@ -115,10 +122,10 @@ elif transposeType == 2:
     I = cv2.rotate(I, cv2.ROTATE_90_COUNTERCLOCKWISE)
     I = np.fliplr(I)
 
-cv2.imwrite(dirName+"/CropImage/size_"+str(extraSize)+"/transpose_image.tif", I)
+cv2.imwrite(outDirName+"/CropImage/size_"+str(extraSize)+"/transpose_image.tif", I)
 
 ### load Image
-I = cv2.imread(dirName+"/CropImage/size_"+str(extraSize)+"/transpose_image.tif")
+I = cv2.imread(outDirName+"/CropImage/size_"+str(extraSize)+"/transpose_image.tif")
 
 print(I.shape)
 
@@ -159,7 +166,7 @@ for i in range(4992):
 
 
 ### save Image
-cv2.imwrite(dirName+"/CropImage/size_"+str(extraSize)+"/original_image_with_spots.tif", I)
+cv2.imwrite(outDirName+"/CropImage/size_"+str(extraSize)+"/original_image_with_spots.tif", I)
 
 
 
@@ -173,7 +180,7 @@ for i in range(4992):
     pos_y2 = tissue_pos.iloc[i,4]+radius
 
     I2 = I[pos_y1:pos_y2, pos_x1:pos_x2]
-    cv2.imwrite(dirName+"/CropImage/size_"+str(extraSize)+"/spot_images/spot_image_"+str(i).zfill(4)+".tif", I2)
+    cv2.imwrite(outDirName+"/CropImage/size_"+str(extraSize)+"/spot_images/spot_image_"+str(i).zfill(4)+".tif", I2)
 
 
 # # Make RGB filter list
@@ -190,7 +197,7 @@ print(cluster_list.head())
 ### merge cluster file and tissue position file ###
 cluster_pos_df = pd.merge(cluster_list, tissue_pos, how='left', on='Barcode')
 
-cluster_pos_df['image_path'] = [dirName+"/CropImage/size_"+str(extraSize)+"/spot_images/spot_image_"+str(s).zfill(4)+".tif" for s in cluster_pos_df['imageID'].tolist()]
+cluster_pos_df['image_path'] = [outDirName+"/CropImage/size_"+str(extraSize)+"/spot_images/spot_image_"+str(s).zfill(4)+".tif" for s in cluster_pos_df['imageID'].tolist()]
 cluster_pos_df = cluster_pos_df.sort_values('imageID')
 cluster_pos_df.index = cluster_pos_df['imageID'].tolist()
 
@@ -203,8 +210,8 @@ print(cluster_pos_df.head())
 
 
 ### mkdir
-subprocess.call(["mkdir","-p",dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/NG/"])
-subprocess.call(["mkdir","-p",dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/OK/"])
+subprocess.call(["mkdir","-p",outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/NG/"])
+subprocess.call(["mkdir","-p",outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/OK/"])
 
 
 
@@ -242,7 +249,7 @@ print("white_th: "+str(white_th))
 
 
 
-with open(dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/white_th.txt", mode='w') as f:
+with open(outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/white_th.txt", mode='w') as f:
     f.write(str(white_th)+"\n")
 
 
@@ -257,7 +264,7 @@ plt.ylabel("Frequency", fontsize=20)
 
 plt.axvline(x=white_th, color='r')
 
-fig.savefig(dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/meanRGB.png")
+fig.savefig(outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/meanRGB.png")
 
 plt.close()
 
@@ -280,16 +287,20 @@ for i in cluster_pos_df.index:
     count_white = sum(np.logical_and.reduce((I[:,:,0] > white_th, I[:,:,1] > white_th, I[:,:,2] > white_th)))
     
     if sum(count_white) > pixel_th_white:
-        subprocess.call(["cp","-p",dirName+"/CropImage/size_"+str(extraSize)+"/spot_images/spot_image_"+str(i).zfill(4)+".tif",dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/NG/"])
+        subprocess.call(["cp","-p",
+                         outDirName+"/CropImage/size_"+str(extraSize)+"/spot_images/spot_image_"+str(i).zfill(4)+".tif",
+                         outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/NG/"])
         cluster_pos_df.loc[cluster_pos_df.index == i,"ImageFilter"] = "NG"
     else:
-        subprocess.call(["cp","-p",dirName+"/CropImage/size_"+str(extraSize)+"/spot_images/spot_image_"+str(i).zfill(4)+".tif",dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/OK/"])
+        subprocess.call(["cp","-p",
+                         outDirName+"/CropImage/size_"+str(extraSize)+"/spot_images/spot_image_"+str(i).zfill(4)+".tif",
+                         outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/OK/"])
         cluster_pos_df.loc[cluster_pos_df.index == i,"ImageFilter"] = "OK"
  
 
 
 
-cluster_pos_df.to_csv(dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/cluster_position_filter.txt", index=False, sep='\t')
+cluster_pos_df.to_csv(outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/cluster_position_filter.txt", index=False, sep='\t')
 
 
 # # Crop Image (interpolation)
@@ -297,7 +308,7 @@ cluster_pos_df.to_csv(dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quan
 
 I = I_org.copy()
 
-subprocess.call(['mkdir','-p',dirName+"/CropImage/size_"+str(extraSize)+"/spot_images_inter"])
+subprocess.call(['mkdir','-p',outDirName+"/CropImage/size_"+str(extraSize)+"/spot_images_inter"])
 
 
 
@@ -361,7 +372,7 @@ for i in range(4992):
 
 
 ### save Image
-cv2.imwrite(dirName+"/CropImage/size_"+str(extraSize)+"/original_image_with_spots_inter.tif", I)
+cv2.imwrite(outDirName+"/CropImage/size_"+str(extraSize)+"/original_image_with_spots_inter.tif", I)
 
 
 
@@ -386,7 +397,7 @@ for i in range(4992):
     pos_y2 = int(center_y)+radius
     
     I2 = I[pos_y1:pos_y2, pos_x1:pos_x2]
-    cv2.imwrite(dirName+"/CropImage/size_"+str(extraSize)+"/spot_images_inter/spot_image_inter_"+str(count_inter).zfill(4)+"_"+str(int(center_x))+"_"+str(int(center_y))+".tif", I2)
+    cv2.imwrite(outDirName+"/CropImage/size_"+str(extraSize)+"/spot_images_inter/spot_image_inter_"+str(count_inter).zfill(4)+"_"+str(int(center_x))+"_"+str(int(center_y))+".tif", I2)
     
     image_list = image_list.append([pd.Series([count_inter,int(center_x),int(center_y),radius],index=image_list.columns)], ignore_index=True)
     
@@ -412,7 +423,7 @@ for i in range(4992):
     pos_y2 = int(center_y)+radius
     
     I2 = I[pos_y1:pos_y2, pos_x1:pos_x2]
-    cv2.imwrite(dirName+"/CropImage/size_"+str(extraSize)+"/spot_images_inter/spot_image_inter_"+str(count_inter).zfill(4)+"_"+str(int(center_x))+"_"+str(int(center_y))+".tif", I2)
+    cv2.imwrite(outDirName+"/CropImage/size_"+str(extraSize)+"/spot_images_inter/spot_image_inter_"+str(count_inter).zfill(4)+"_"+str(int(center_x))+"_"+str(int(center_y))+".tif", I2)
     
     image_list = image_list.append([pd.Series([count_inter,int(center_x),int(center_y),radius],index=image_list.columns)], ignore_index=True)
 
@@ -424,7 +435,7 @@ for i in range(4992):
 
 ### interpolated image list ###
 image_list['ImageFilter'] = "null"
-image_list['image_path'] = [dirName+"/CropImage/size_"+str(extraSize)+"/spot_images_inter/spot_image_inter_"+str(no).zfill(4)+"_"+str(x)+"_"+str(y)+".tif" for no,x,y in zip(image_list['No'],image_list['pos_x1'],image_list['pos_y1'])]
+image_list['image_path'] = [outDirName+"/CropImage/size_"+str(extraSize)+"/spot_images_inter/spot_image_inter_"+str(no).zfill(4)+"_"+str(x)+"_"+str(y)+".tif" for no,x,y in zip(image_list['No'],image_list['pos_x1'],image_list['pos_y1'])]
 
 print("image_list: "+str(image_list.shape))
 print(image_list.head())
@@ -432,8 +443,8 @@ print(image_list.head())
 
 
 ### mkdir
-subprocess.call(["mkdir","-p",dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/NG_inter/"])
-subprocess.call(["mkdir","-p",dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/OK_inter/"])
+subprocess.call(["mkdir","-p",outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/NG_inter/"])
+subprocess.call(["mkdir","-p",outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/OK_inter/"])
 
 
 
@@ -461,7 +472,7 @@ print(image_list.head())
 
 
 ## read RGB threshold
-with open(dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/white_th.txt", mode='r') as f:
+with open(outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/white_th.txt", mode='r') as f:
     white_th = f.read().splitlines()[0]
     white_th = float(white_th)
 
@@ -481,7 +492,7 @@ plt.ylabel("Frequency", fontsize=20)
 
 plt.axvline(x=white_th, color='r')
 
-fig.savefig(dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/meanRGB_inter.png")
+fig.savefig(outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/meanRGB_inter.png")
 
 plt.close()
 
@@ -504,26 +515,15 @@ for i in image_list.index:
     count_white = sum(np.logical_and.reduce((I[:,:,0] > white_th, I[:,:,1] > white_th, I[:,:,2] > white_th)))
     
     if sum(count_white) > pixel_th_white:
-        subprocess.call(["cp","-p",image_list.loc[image_list.index == i,"image_path"].tolist()[0],dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/NG_inter/"])
+        subprocess.call(["cp","-p",image_list.loc[image_list.index == i,"image_path"].tolist()[0],outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/NG_inter/"])
         image_list.loc[image_list.index == i,"ImageFilter"] = "NG"
     else:
-        subprocess.call(["cp","-p",image_list.loc[image_list.index == i,"image_path"].tolist()[0],dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/OK_inter/"])
+        subprocess.call(["cp","-p",image_list.loc[image_list.index == i,"image_path"].tolist()[0],outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/OK_inter/"])
         image_list.loc[image_list.index == i,"ImageFilter"] = "OK"
  
 
 
 
-image_list.to_csv(dirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/image_list_inter.txt", index=False, sep='\t')
-
-
-
-
-
-
-
-
-
-
-
+image_list.to_csv(outDirName+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/image_list_inter.txt", index=False, sep='\t')
 
 

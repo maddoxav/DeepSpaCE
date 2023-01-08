@@ -146,7 +146,7 @@ print("cluster_num: "+str(cluster_num))
 
 
 sampleNames = args.sampleNames.split(',')
-print("sampleName: "+str(sampleNames))
+print("sampleNames: "+str(sampleNames))
 
 
 
@@ -183,10 +183,10 @@ torch.backends.cudnn.benchmark = False
 
 
 print("### load image list ###")
-image_list = pd.DataFrame(columns=['Sample','No','pos_x1', 'pos_y1', 'radius', 'ImageFilter', 'image_path', 'mean_RGB'] )
+image_list = pd.DataFrame(columns=['Sample','No','pos_x1', 'pos_y1', 'radius', 'ImageFilter', 'image_path', 'mean_RGB'])
 
 for sample in sampleNames:
-    tmp = pd.read_csv(dataDir+"/"+sample+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/image_list_inter.txt", sep='\t')
+    tmp = pd.read_csv(outDir+"/"+sample+"/CropImage/size_"+str(extraSize)+"/RGB_"+str(quantileRGB)+"/image_list_inter.txt", sep='\t')
     tmp['Sample'] = sample
     image_list = image_list.append(tmp, ignore_index=True)
 

@@ -24,6 +24,8 @@ parser <- ArgumentParser()
 
 parser$add_argument("--dataDir", default=paste0("/home/",Sys.getenv("USER"),"/DeepSpaCE/data"),
                     help="Data directory [default %(default)s]")
+parser$add_argument("--outDir", 
+                    help="Output directory [e.g. /home/jupyter/DeepSpaCE/out]")
 parser$add_argument("--sampleName", default="Breast_Cancer_Block_A_Section_1",
                     help="Sample name [default %(default)s]")
 parser$add_argument("--threshold_count", type="integer", default=1000,
@@ -35,18 +37,20 @@ args <- parser$parse_args()
 
 
 dataDir <- args$dataDir
+outDir <- args$outDir
 sampleName <- args$sampleName
 threshold_count <- args$threshold_count
 threshold_gene <- args$threshold_gene
 
 
 print(paste0("dataDir: ",dataDir))
+print(paste0("outDir: ",outDir))
 print(paste0("sampleName: ",sampleName))
 print(paste0("threshold_count: ",threshold_count))
 print(paste0("threshold_gene: ",threshold_gene))
 
 
-system(paste0("mkdir ",dataDir,"/",sampleName,"/NormUMI/"))
+system(paste0("mkdir ",outDir,"/",sampleName,"/NormUMI/"))
 
 
 # load Visium data
@@ -61,7 +65,7 @@ visiumData <- Load10X_Spatial(paste0(dataDir,"/",sampleName,"/SpaceRanger/"),
 plot1 <- VlnPlot(visiumData, features = "nCount_Spatial", pt.size = 0.1) + NoLegend()
 plot2 <- SpatialFeaturePlot(visiumData, features = "nCount_Spatial") + theme(legend.position = "right")
 p <- wrap_plots(plot1, plot2)
-ggsave(file = paste0(dataDir,"/",sampleName,"/NormUMI/plot_Vln.png"), plot = p, dpi = 200, width = 12, height = 6)
+ggsave(file = paste0(outDir,"/",sampleName,"/NormUMI/plot_Vln.png"), plot = p, dpi = 200, width = 12, height = 6)
 
 # SCTransform
 visiumData_SCT <- SCTransform(visiumData, assay = "Spatial", verbose = FALSE)
@@ -70,7 +74,7 @@ visiumData_SCT <- SCTransform(visiumData, assay = "Spatial", verbose = FALSE)
 plot1 <- VlnPlot(visiumData_SCT, features = "nCount_SCT", pt.size = 0.1) + NoLegend()
 plot2 <- SpatialFeaturePlot(visiumData_SCT, features = "nCount_SCT") + theme(legend.position = "right")
 p <- wrap_plots(plot1, plot2)
-ggsave(file = paste0(dataDir,"/",sampleName,"/NormUMI/plot_Vln_SCT.png"), plot = p, dpi = 200, width = 12, height = 6)
+ggsave(file = paste0(outDir,"/",sampleName,"/NormUMI/plot_Vln_SCT.png"), plot = p, dpi = 200, width = 12, height = 6)
 
 # make exp matrix
 mat <- data.frame(GetAssayData(visiumData, slot="counts"))
@@ -85,8 +89,8 @@ mat <- mat[,c(ncol(mat),1:(ncol(mat)-1))]
 mat_SCT$symbol <- rownames(mat_SCT)
 mat_SCT <- mat_SCT[,c(ncol(mat_SCT),1:(ncol(mat_SCT)-1))]
 
-write.table(mat,paste0(dataDir,"/",sampleName,"/NormUMI/exp_mat.txt"),quote=F,sep="\t",row.names=F,col.names=T)
-write.table(mat_SCT,paste0(dataDir,"/",sampleName,"/NormUMI/exp_mat_SCT.txt"),quote=F,sep="\t",row.names=F,col.names=T)
+write.table(mat,paste0(outDir,"/",sampleName,"/NormUMI/exp_mat.txt"),quote=F,sep="\t",row.names=F,col.names=T)
+write.table(mat_SCT,paste0(outDir,"/",sampleName,"/NormUMI/exp_mat_SCT.txt"),quote=F,sep="\t",row.names=F,col.names=T)
 
 # make exp matrix (log10)
 mat_log10$symbol <- rownames(mat_log10)
@@ -95,8 +99,8 @@ mat_log10 <- mat_log10[,c(ncol(mat_log10),1:(ncol(mat_log10)-1))]
 mat_SCT_log10$symbol <- rownames(mat_SCT_log10)
 mat_SCT_log10 <- mat_SCT_log10[,c(ncol(mat_SCT_log10),1:(ncol(mat_SCT_log10)-1))]
 
-write.table(mat_log10,paste0(dataDir,"/",sampleName,"/NormUMI/exp_mat_log10.txt"),quote=F,sep="\t",row.names=F,col.names=T)
-write.table(mat_SCT_log10,paste0(dataDir,"/",sampleName,"/NormUMI/exp_mat_SCT_log10.txt"),quote=F,sep="\t",row.names=F,col.names=T)
+write.table(mat_log10,paste0(outDir,"/",sampleName,"/NormUMI/exp_mat_log10.txt"),quote=F,sep="\t",row.names=F,col.names=T)
+write.table(mat_SCT_log10,paste0(outDir,"/",sampleName,"/NormUMI/exp_mat_SCT_log10.txt"),quote=F,sep="\t",row.names=F,col.names=T)
 
 
 
@@ -107,7 +111,7 @@ visiumData_fil <- subset(visiumData, subset = nCount_Spatial >= threshold_count 
 plot1 <- VlnPlot(visiumData_fil, features = "nCount_Spatial", pt.size = 0.1) + NoLegend()
 plot2 <- SpatialFeaturePlot(visiumData_fil, features = "nCount_Spatial") + theme(legend.position = "right")
 p <- wrap_plots(plot1, plot2)
-ggsave(file = paste0(dataDir,"/",sampleName,"/NormUMI/plot_Vln_fil.png"), plot = p, dpi = 200, width = 12, height = 6)
+ggsave(file = paste0(outDir,"/",sampleName,"/NormUMI/plot_Vln_fil.png"), plot = p, dpi = 200, width = 12, height = 6)
 
 # SCTransform
 visiumData_fil_SCT <- SCTransform(visiumData_fil, assay = "Spatial", verbose = FALSE)
@@ -116,7 +120,7 @@ visiumData_fil_SCT <- SCTransform(visiumData_fil, assay = "Spatial", verbose = F
 plot1 <- VlnPlot(visiumData_fil_SCT, features = "nCount_SCT", pt.size = 0.1) + NoLegend()
 plot2 <- SpatialFeaturePlot(visiumData_fil_SCT, features = "nCount_SCT") + theme(legend.position = "right")
 p <- wrap_plots(plot1, plot2)
-ggsave(file = paste0(dataDir,"/",sampleName,"/NormUMI/plot_Vln_fil_SCT.png"), plot = p, dpi = 200, width = 12, height = 6)
+ggsave(file = paste0(outDir,"/",sampleName,"/NormUMI/plot_Vln_fil_SCT.png"), plot = p, dpi = 200, width = 12, height = 6)
 
 # make exp matrix
 mat <- data.frame(GetAssayData(visiumData_fil, slot="counts"))
@@ -131,8 +135,8 @@ mat <- mat[,c(ncol(mat),1:(ncol(mat)-1))]
 mat_SCT$symbol <- rownames(mat_SCT)
 mat_SCT <- mat_SCT[,c(ncol(mat_SCT),1:(ncol(mat_SCT)-1))]
 
-write.table(mat,paste0(dataDir,"/",sampleName,"/NormUMI/exp_mat_fil.txt"),quote=F,sep="\t",row.names=F,col.names=T)
-write.table(mat_SCT,paste0(dataDir,"/",sampleName,"/NormUMI/exp_mat_fil_SCT.txt"),quote=F,sep="\t",row.names=F,col.names=T)
+write.table(mat,paste0(outDir,"/",sampleName,"/NormUMI/exp_mat_fil.txt"),quote=F,sep="\t",row.names=F,col.names=T)
+write.table(mat_SCT,paste0(outDir,"/",sampleName,"/NormUMI/exp_mat_fil_SCT.txt"),quote=F,sep="\t",row.names=F,col.names=T)
 
 # make exp matrix (log10)
 mat_log10$symbol <- rownames(mat_log10)
@@ -141,8 +145,8 @@ mat_log10 <- mat_log10[,c(ncol(mat_log10),1:(ncol(mat_log10)-1))]
 mat_SCT_log10$symbol <- rownames(mat_SCT_log10)
 mat_SCT_log10 <- mat_SCT_log10[,c(ncol(mat_SCT_log10),1:(ncol(mat_SCT_log10)-1))]
 
-write.table(mat_log10,paste0(dataDir,"/",sampleName,"/NormUMI/exp_mat_fil_log10.txt"),quote=F,sep="\t",row.names=F,col.names=T)
-write.table(mat_SCT_log10,paste0(dataDir,"/",sampleName,"/NormUMI/exp_mat_fil_SCT_log10.txt"),quote=F,sep="\t",row.names=F,col.names=T)
+write.table(mat_log10,paste0(outDir,"/",sampleName,"/NormUMI/exp_mat_fil_log10.txt"),quote=F,sep="\t",row.names=F,col.names=T)
+write.table(mat_SCT_log10,paste0(outDir,"/",sampleName,"/NormUMI/exp_mat_fil_SCT_log10.txt"),quote=F,sep="\t",row.names=F,col.names=T)
 
 
 ###################################################################################################
@@ -164,7 +168,7 @@ p2 <- p2 + geom_violin(trim=F,fill="#999999",alpha=I(1/3)) + geom_jitter(size=0.
 p2 <- p2 + theme_linedraw() + theme(axis.text=element_text(size=16), axis.title=element_text(size=20,face="bold"), axis.title.x = element_blank())
 
 p <- wrap_plots(p1, p2)
-ggsave(file = paste0(dataDir,"/",sampleName,"/NormUMI/plot_violin_totalUMI_totalGene.png"), plot = p, dpi = 200, width = 12, height = 6)
+ggsave(file = paste0(outDir,"/",sampleName,"/NormUMI/plot_violin_totalUMI_totalGene.png"), plot = p, dpi = 200, width = 12, height = 6)
 
 visiumData_fil <- subset(visiumData, subset = nCount_Spatial >= threshold_count & nFeature_Spatial >= threshold_gene)
 
@@ -182,7 +186,7 @@ p2 <- p2 + geom_violin(trim=F,fill="#999999",alpha=I(1/3)) + geom_jitter(size=0.
 p2 <- p2 + theme_linedraw() + theme(axis.text=element_text(size=16), axis.title=element_text(size=20,face="bold"), axis.title.x = element_blank())
 
 p <- wrap_plots(p1, p2)
-ggsave(file = paste0(dataDir,"/",sampleName,"/NormUMI/plot_violin_totalUMI_totalGene_fil.png"), plot = p, dpi = 200, width = 12, height = 6)
+ggsave(file = paste0(outDir,"/",sampleName,"/NormUMI/plot_violin_totalUMI_totalGene_fil.png"), plot = p, dpi = 200, width = 12, height = 6)
 
 
 
@@ -243,7 +247,7 @@ tissue_paths <- paste0(dataDir,"/",sample_names,"/SpaceRanger/spatial/tissue_pos
 
 cluster_paths <- paste0(dataDir,"/",sample_names,"/SpaceRanger/analysis/clustering/graphclust/clusters.csv")
 
-matrix_paths <- paste0(dataDir,"/",sample_names,"/SpaceRanger/filtered_feature_bc_matrix/")
+matrix_paths <- paste0(dataDir,"/",sample_names,"/SpaceRanger/filtered_feature_bc_matrix/") # never used? 
 
 ## Read in Down Sampled Images
 images_cl <- list()
@@ -311,7 +315,7 @@ names(bcs) <- sample_names
 ## Read in the Matrix, Barcodes, and Genes
 matrix <- list()
 
-mat <- fread(paste0(dataDir,"/",sample_names,"/NormUMI/exp_mat.txt"), data.table=F)
+mat <- fread(paste0(outDir,"/",sample_names,"/NormUMI/exp_mat.txt"), data.table=F)
 
 rownames(mat) <- mat$symbol
 mat <- mat[,-1]
@@ -398,7 +402,7 @@ for (i in 1:length(sample_names)) {
 }
 
 p <- plot_grid(plotlist = plots)
-ggsave(file = paste0(dataDir,"/",sample_names,"/NormUMI/plot_totalUMI.png"), plot = p, dpi = 200, width = 6, height = 6)
+ggsave(file = paste0(outDir,"/",sample_names,"/NormUMI/plot_totalUMI.png"), plot = p, dpi = 200, width = 6, height = 6)
 
 
 ## Total Genes per Tissue Covered Spot
@@ -432,7 +436,7 @@ for (i in 1:length(sample_names)) {
 }
 
 p <- plot_grid(plotlist = plots)
-ggsave(file = paste0(dataDir,"/",sample_names,"/NormUMI/plot_totalUMI_totalGene.png"), plot = p, dpi = 200, width = 12, height = 6)
+ggsave(file = paste0(outDir,"/",sample_names,"/NormUMI/plot_totalUMI_totalGene.png"), plot = p, dpi = 200, width = 12, height = 6)
 
 
 ## plot remove spots
@@ -473,5 +477,5 @@ for (i in 1:length(sample_names)) {
 }
 
 p <- plot_grid(plotlist = plots)
-ggsave(file = paste0(dataDir,"/",sample_names,"/NormUMI/plot_remove_spots.png"), plot = p, dpi = 200, width = 6, height = 6)
+ggsave(file = paste0(outDir,"/",sample_names,"/NormUMI/plot_remove_spots.png"), plot = p, dpi = 200, width = 6, height = 6)
 
